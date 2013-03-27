@@ -110,6 +110,7 @@ namespace zmq {
       static Handle<Value> SetSockOpt(const Arguments &args);
 
       struct BindState;
+      struct my_struct;
       static Handle<Value> Bind(const Arguments &args);
 
       static void UV_BindAsync(uv_work_t* req);
@@ -330,12 +331,19 @@ namespace zmq {
     }
   }
 
+  struct Socket::my_struct {
+    Socket* socket;
+    Context* context;
+  };
+
   void
   Socket::UV_PollCallback(uv_poll_t* handle, int status, int events) {
     printf("Socket::UV_PollCallback(uv_poll_t* handle, int status, int events)\n");
+    printf("%d %d %d\n", events, events & UV_READABLE, events & UV_WRITABLE);
     assert(status == 0);
 
-    Socket* s = static_cast<Socket*>(handle->data);
+    my_struct *m = (my_struct *) handle->data;
+    Socket* s = static_cast<Socket*>(m->socket);
     s->CallbackIfReady();
   }
 
@@ -345,9 +353,12 @@ namespace zmq {
     socket_ = zmq_socket(context->context_, type);
     state_ = STATE_READY;
 
-    poll_handle_ = new uv_poll_t;
+    my_struct *m = new Socket::my_struct;
+    m->socket = this;
+    m->context = context;
 
-    poll_handle_->data = this;
+    poll_handle_ = new uv_poll_t;
+    poll_handle_->data = m;
 
     uv_os_sock_t socket;
     size_t len = sizeof(uv_os_sock_t);
@@ -860,6 +871,7 @@ namespace zmq {
         throw std::runtime_error(ErrorMessage());
       socket_ = NULL;
       state_ = STATE_CLOSED;
+      printf("context_.Dispose()\n");
       context_.Dispose();
       context_.Clear();
 
