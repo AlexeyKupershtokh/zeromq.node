@@ -166,6 +166,7 @@ namespace zmq {
 
   void
   Context::Initialize(v8::Handle<v8::Object> target) {
+    printf("Context::Initialize(v8::Handle<v8::Object> target)\n");
     HandleScope scope;
 
     Local<FunctionTemplate> t = FunctionTemplate::New(New);
@@ -178,11 +179,13 @@ namespace zmq {
 
 
   Context::~Context() {
+    printf("Context::~Context()\n");
     Close();
   }
 
   Handle<Value>
   Context::New(const Arguments& args) {
+    printf("Context::New(const Arguments& args)\n");
     HandleScope scope;
 
     assert(args.IsConstructCall());
@@ -207,18 +210,21 @@ namespace zmq {
   }
 
   Context::Context(int io_threads) : ObjectWrap() {
+    printf("Context::Context(int io_threads) : ObjectWrap()\n");
     context_ = zmq_init(io_threads);
     if (!context_) throw std::runtime_error(ErrorMessage());
   }
 
   Context *
   Context::GetContext(const Arguments &args) {
+    printf("Context::GetContext(const Arguments &args)\n");
     return ObjectWrap::Unwrap<Context>(args.This());
   }
 
 
   void
   Context::Close() {
+    printf("Context::Close()\n");
     if (context_ != NULL) {
       if (zmq_term(context_) < 0) throw std::runtime_error(ErrorMessage());
       context_ = NULL;
@@ -227,6 +233,7 @@ namespace zmq {
 
   Handle<Value>
   Context::Close(const Arguments& args) {
+    printf("Context::Close(const Arguments& args)\n");
     HandleScope scope;
     GetContext(args)->Close();
     return Undefined();
@@ -238,6 +245,7 @@ namespace zmq {
 
   void
   Socket::Initialize(v8::Handle<v8::Object> target) {
+    printf("Socket::Initialize(v8::Handle<v8::Object> target)\n");
     HandleScope scope;
 
     Local<FunctionTemplate> t = FunctionTemplate::New(New);
@@ -264,11 +272,13 @@ namespace zmq {
   }
 
   Socket::~Socket() {
+    printf("Socket::~Socket()\n");
     Close();
   }
 
   Handle<Value>
   Socket::New(const Arguments &args) {
+    printf("Socket::New(const Arguments &args)\n");
     HandleScope scope;
 
     assert(args.IsConstructCall());
@@ -292,6 +302,7 @@ namespace zmq {
 
   bool
   Socket::IsReady() {
+    printf("Socket::IsReady()\n");
     zmq_pollitem_t items[1];
     items[0].socket = socket_;
     items[0].events = ZMQ_POLLIN;
@@ -300,6 +311,7 @@ namespace zmq {
 
   void
   Socket::CallbackIfReady() {
+    printf("Socket::CallbackIfReady()\n");
     if (this->IsReady()) {
       HandleScope scope;
 
@@ -320,6 +332,7 @@ namespace zmq {
 
   void
   Socket::UV_PollCallback(uv_poll_t* handle, int status, int events) {
+    printf("Socket::UV_PollCallback(uv_poll_t* handle, int status, int events)\n");
     assert(status == 0);
 
     Socket* s = static_cast<Socket*>(handle->data);
@@ -327,6 +340,7 @@ namespace zmq {
   }
 
   Socket::Socket(Context *context, int type) : ObjectWrap() {
+    printf("Socket::Socket(Context *context, int type) : ObjectWrap()\n");
     context_ = Persistent<Object>::New(context->handle_);
     socket_ = zmq_socket(context->context_, type);
     state_ = STATE_READY;
@@ -345,6 +359,7 @@ namespace zmq {
 
   Socket *
   Socket::GetSocket(const Arguments &args) {
+    printf("Socket::GetSocket(const Arguments &args)\n");
     return ObjectWrap::Unwrap<Socket>(args.This());
   }
 
@@ -363,12 +378,14 @@ namespace zmq {
 
   Handle<Value>
   Socket::GetState(Local<String> p, const AccessorInfo& info) {
+    printf("Socket::GetState(Local<String> p, const AccessorInfo& info)\n");
     Socket* socket = ObjectWrap::Unwrap<Socket>(info.Holder());
     return Integer::New(socket->state_);
   }
 
   template<typename T>
   Handle<Value> Socket::GetSockOpt(int option) {
+    printf("Handle<Value> Socket::GetSockOpt(int option)\n");
     T value = 0;
     size_t len = sizeof(T);
     if (zmq_getsockopt(socket_, option, &value, &len) < 0)
@@ -378,6 +395,7 @@ namespace zmq {
 
   template<typename T>
   Handle<Value> Socket::SetSockOpt(int option, Handle<Value> wrappedValue) {
+    printf("Handle<Value> Socket::SetSockOpt(int option, Handle<Value> wrappedValue)\n");
     if (!wrappedValue->IsNumber())
       return ThrowException(Exception::TypeError(
         String::New("Value must be an integer")));
@@ -389,6 +407,7 @@ namespace zmq {
 
   template<> Handle<Value>
   Socket::GetSockOpt<char*>(int option) {
+    printf("Socket::GetSockOpt<char*>(int option)\n");
     char value[1024];
     size_t len = sizeof(value) - 1;
     if (zmq_getsockopt(socket_, option, value, &len) < 0)
@@ -399,6 +418,7 @@ namespace zmq {
 
   template<> Handle<Value>
   Socket::SetSockOpt<char*>(int option, Handle<Value> wrappedValue) {
+    printf("Socket::SetSockOpt<char*>(int option, Handle<Value> wrappedValue)\n");
     if (!Buffer::HasInstance(wrappedValue))
       return ThrowException(Exception::TypeError(
           String::New("Value must be a buffer")));
@@ -410,6 +430,7 @@ namespace zmq {
   }
 
   Handle<Value> Socket::GetSockOpt(const Arguments &args) {
+    printf("Handle<Value> Socket::GetSockOpt(const Arguments &args)\n");
     if (args.Length() != 1)
       return ThrowException(Exception::Error(
           String::New("Must pass an option")));
@@ -437,6 +458,7 @@ namespace zmq {
   }
 
   Handle<Value> Socket::SetSockOpt(const Arguments &args) {
+    printf("Handle<Value> Socket::SetSockOpt(const Arguments &args)\n");
     if (args.Length() != 2)
       return ThrowException(Exception::Error(
         String::New("Must pass an option and a value")));
@@ -466,6 +488,7 @@ namespace zmq {
   struct Socket::BindState {
     BindState(Socket* sock_, Handle<Function> cb_, Handle<String> addr_)
           : addr(addr_) {
+      printf("BindState(Socket* sock_, Handle<Function> cb_, Handle<String> addr_)\n");
       sock_obj = Persistent<Object>::New(sock_->handle_);
       sock = sock_->socket_;
       cb = Persistent<Function>::New(cb_);
@@ -473,6 +496,7 @@ namespace zmq {
     }
 
     ~BindState() {
+      printf("~BindState()\n");
       sock_obj.Dispose();
       sock_obj.Clear();
       cb.Dispose();
@@ -488,6 +512,7 @@ namespace zmq {
 
   Handle<Value>
   Socket::Bind(const Arguments &args) {
+    printf("Socket::Bind(const Arguments &args)\n");
     HandleScope scope;
     if (!args[0]->IsString())
       return ThrowException(Exception::TypeError(
@@ -513,12 +538,14 @@ namespace zmq {
   }
 
   void Socket::UV_BindAsync(uv_work_t* req) {
+    printf("Socket::UV_BindAsync(uv_work_t* req)\n");
     BindState* state = static_cast<BindState*>(req->data);
     if (zmq_bind(state->sock, *state->addr) < 0)
         state->error = zmq_errno();
   }
 
   void Socket::UV_BindAsyncAfter(uv_work_t* req) {
+    printf("Socket::UV_BindAsyncAfter(uv_work_t* req)\n");
     BindState* state = static_cast<BindState*>(req->data);
     HandleScope scope;
 
@@ -539,6 +566,7 @@ namespace zmq {
 
   Handle<Value>
   Socket::BindSync(const Arguments &args) {
+    printf("Socket::BindSync(const Arguments &args)\n");
     HandleScope scope;
     if (!args[0]->IsString())
       return ThrowException(Exception::TypeError(
@@ -559,6 +587,7 @@ namespace zmq {
 
   Handle<Value>
   Socket::Connect(const Arguments &args) {
+    printf("Socket::Connect(const Arguments &args)\n");
     HandleScope scope;
     if (!args[0]->IsString()) {
       return ThrowException(Exception::TypeError(
@@ -576,6 +605,7 @@ namespace zmq {
 #if ZMQ_CAN_DISCONNECT
   Handle<Value>
   Socket::Disconnect(const Arguments &args) {
+    printf("Socket::Disconnect(const Arguments &args)\n");
     HandleScope scope;
     if (!args[0]->IsString()) {
       return ThrowException(Exception::TypeError(
@@ -601,10 +631,12 @@ namespace zmq {
   class Socket::IncomingMessage {
     public:
       inline IncomingMessage() {
+        printf("IncomingMessage()\n");
         msgref_ = new MessageReference();
       };
 
       inline ~IncomingMessage() {
+        printf("~IncomingMessage()\n");
         if (buf_.IsEmpty() && msgref_) {
           delete msgref_;
           msgref_ = NULL;
@@ -619,6 +651,7 @@ namespace zmq {
       }
 
       inline Local<Value> GetBuffer() {
+        printf("Local<Value> GetBuffer()\n");
         if (buf_.IsEmpty()) {
           Buffer* buf_obj = Buffer::New(
             (char*)zmq_msg_data(*msgref_), zmq_msg_size(*msgref_),
@@ -632,17 +665,20 @@ namespace zmq {
 
     private:
       static void FreeCallback(char* data, void* message) {
+        printf("FreeCallback(char* data, void* message)\n");
         delete (MessageReference*) message;
       }
 
       class MessageReference {
         public:
           inline MessageReference() {
+            printf("MessageReference()\n");
             if (zmq_msg_init(&msg_) < 0)
               throw std::runtime_error(ErrorMessage());
           }
 
           inline ~MessageReference() {
+            printf("~MessageReference()\n");
             if (zmq_msg_close(&msg_) < 0)
               throw std::runtime_error(ErrorMessage());
           }
@@ -660,6 +696,7 @@ namespace zmq {
   };
 
   Handle<Value> Socket::Recv(const Arguments &args) {
+    printf("Socket::Recv(const Arguments &args)\n");
     HandleScope scope;
 
     int flags = 0;
@@ -696,6 +733,7 @@ namespace zmq {
   class Socket::OutgoingMessage {
     public:
       inline OutgoingMessage(Handle<Object> buf) {
+        printf("OutgoingMessage(Handle<Object> buf)\n");
         bufref_ = new BufferReference(buf);
         if (zmq_msg_init_data(&msg_, Buffer::Data(buf), Buffer::Length(buf),
             BufferReference::FreeCallback, bufref_) < 0) {
@@ -705,6 +743,7 @@ namespace zmq {
       };
 
       inline ~OutgoingMessage() {
+        printf("~OutgoingMessage()\n");
         if (zmq_msg_close(&msg_) < 0)
           throw std::runtime_error(ErrorMessage());
       };
@@ -717,6 +756,7 @@ namespace zmq {
       class BufferReference {
         public:
           inline BufferReference(Handle<Object> buf) {
+            printf("BufferReference(Handle<Object> buf)\n");
             // Keep the handle alive until zmq is done with the buffer
             noLongerNeeded_ = false;
             buf_ = Persistent<Object>::New(buf);
@@ -724,6 +764,7 @@ namespace zmq {
           }
 
           inline ~BufferReference() {
+            printf("~BufferReference()\n");
             buf_.Dispose();
             buf_.Clear();
           }
@@ -731,12 +772,14 @@ namespace zmq {
           // Called by zmq when the message has been sent.
           // NOTE: May be called from a worker thread. Do not modify V8/Node.
           static void FreeCallback(void* data, void* message) {
+            printf("FreeCallback(void* data, void* message)\n");
             // Raise a flag indicating that we're done with the buffer
             ((BufferReference*)message)->noLongerNeeded_ = true;
           }
 
           // Called when V8 would like to GC buf_
           static void WeakCheck(v8::Persistent<v8::Value> obj, void* data) {
+            printf("WeakCheck(v8::Persistent<v8::Value> obj, void* data)\n");
             if (((BufferReference*)data)->noLongerNeeded_) {
               delete (BufferReference*)data;
             } else {
@@ -759,6 +802,7 @@ namespace zmq {
   // Do not modify or reuse any buffer passed to send.
   // This is bad, but allows us to send without copying.
   Handle<Value> Socket::Send(const Arguments &args) {
+    printf("Socket::Send(const Arguments &args)\n");
     HandleScope scope;
 
     int argc = args.Length();
@@ -810,6 +854,7 @@ namespace zmq {
 
   void
   Socket::Close() {
+    printf("Socket::Close()\n");
     if (socket_) {
       if (zmq_close(socket_) < 0)
         throw std::runtime_error(ErrorMessage());
@@ -824,6 +869,7 @@ namespace zmq {
 
   Handle<Value>
   Socket::Close(const Arguments &args) {
+    printf("Socket::Close(const Arguments &args)\n");
     HandleScope scope;
     GET_SOCKET(args);
     socket->Close();
@@ -843,6 +889,7 @@ namespace zmq {
 
   static Handle<Value>
   ZmqVersion(const Arguments& args) {
+    printf("ZmqVersion(const Arguments& args)\n");
     HandleScope scope;
 
     int major, minor, patch;
@@ -856,6 +903,7 @@ namespace zmq {
 
   static void
   Initialize(Handle<Object> target) {
+    printf("Initialize(Handle<Object> target)\n");
     HandleScope scope;
 
     opts_int.insert(14); // ZMQ_FD
