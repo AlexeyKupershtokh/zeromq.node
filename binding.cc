@@ -565,7 +565,7 @@ namespace zmq {
     uv_os_sock_t socket;
     size_t len = sizeof(uv_os_sock_t);
     zmq_getsockopt(static_cast<Socket*>(state->sock)->socket_, ZMQ_FD, &socket, &len);
-    printf("Socket::Socket socket = %d\n", socket);
+    printf("Socket::UV_BindAsyncAfter socket = %d\n", socket);
 
     Local<Value> argv[1];
     if (state->error) argv[0] = Exception::Error(String::New(zmq_strerror(state->error)));
