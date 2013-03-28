@@ -334,6 +334,7 @@ namespace zmq {
   struct Socket::my_struct {
     Socket* socket;
     Context* context;
+    void *socket_;
   };
 
   void
@@ -364,6 +365,7 @@ namespace zmq {
     size_t len = sizeof(uv_os_sock_t);
     // TODO error handling
     zmq_getsockopt(socket_, ZMQ_FD, &socket, &len);
+    printf("Socket::Socket socket = %d\n", socket);
     uv_poll_init_socket(uv_default_loop(), poll_handle_, socket);
     uv_poll_start(poll_handle_, UV_READABLE, Socket::UV_PollCallback);
   }
@@ -559,6 +561,11 @@ namespace zmq {
     printf("Socket::UV_BindAsyncAfter(uv_work_t* req)\n");
     BindState* state = static_cast<BindState*>(req->data);
     HandleScope scope;
+
+    uv_os_sock_t socket;
+    size_t len = sizeof(uv_os_sock_t);
+    zmq_getsockopt(static_cast<Socket*>(state->sock)->socket_, ZMQ_FD, &socket, &len);
+    printf("Socket::Socket socket = %d\n", socket);
 
     Local<Value> argv[1];
     if (state->error) argv[0] = Exception::Error(String::New(zmq_strerror(state->error)));
