@@ -547,6 +547,8 @@ namespace zmq {
                   (uv_after_work_cb)UV_BindAsyncAfter);
     socket->state_ = STATE_BUSY;
 
+    socket->Ref();
+
     return Undefined();
   }
 
@@ -600,6 +602,8 @@ namespace zmq {
 
     socket->state_ = STATE_READY;
 
+    socket->Ref();
+
     return Undefined();
   }
 
@@ -617,6 +621,9 @@ namespace zmq {
     String::Utf8Value address(args[0]->ToString());
     if (zmq_connect(socket->socket_, *address))
       return ThrowException(ExceptionFromError());
+
+    socket->Ref();
+
     return Undefined();
   }
   
@@ -892,6 +899,9 @@ namespace zmq {
     HandleScope scope;
     GET_SOCKET(args);
     socket->Close();
+
+    socket->Unref();
+
     return Undefined();
   }
 
